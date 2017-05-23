@@ -6,7 +6,7 @@ BUILDTAGS=
 RELEASE?=0.9.0-beta.5
 PREFIX?=harborfront/nginx-ingress-controller
 GOOS?=linux
-DOCKER?=$(which docker)
+DOCKER?=docker
 
 REPO_INFO=$(shell git config --get remote.origin.url)
 

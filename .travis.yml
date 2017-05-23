@@ -31,6 +31,6 @@ before_script:
 script:
   - docker login -e="$DOCKER_EMAIL" -u="$DOCKER_USERNAME" -p="$DOCKER_PASSWORD"
   - make -C images/nginx-slim all
-  - make fmt lint vet cover
+  - make fmt lint vet
   - make docker-push
   #- make test-e2e

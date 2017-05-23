@@ -67,9 +67,9 @@ ifeq ($(ARCH), amd64)
 endif
 
 push: container
-	$(which docker) push $(MULTI_ARCH_IMG):$(TAG)
+	docker push $(MULTI_ARCH_IMG):$(TAG)
 ifeq ($(ARCH), amd64)
-	$(which docker) push $(IMAGE):$(TAG)
+	docker push $(IMAGE):$(TAG)
 endif
 
 clean:
