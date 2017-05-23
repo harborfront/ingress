@@ -15,12 +15,12 @@
 all: push
 
 # 0.0.0 shouldn't clobber any released builds
-TAG = 0.16
-REGISTRY = gcr.io/google_containers
+TAG = 0.1
+REGISTRY = harborfront
 ARCH ?= $(shell go env GOARCH)
 QEMUVERSION=v2.7.0
 
-IMGNAME = nginx-slim
+IMGNAME = nginx-ingress
 IMAGE = $(REGISTRY)/$(IMGNAME)
 MULTI_ARCH_IMG = $(IMAGE)-$(ARCH)
 
@@ -67,9 +67,9 @@ ifeq ($(ARCH), amd64)
 endif
 
 push: container
-	gcloud docker -- push $(MULTI_ARCH_IMG):$(TAG)
+	$(which docker) push $(MULTI_ARCH_IMG):$(TAG)
 ifeq ($(ARCH), amd64)
-	gcloud docker -- push $(IMAGE):$(TAG)
+	$(which docker) push $(IMAGE):$(TAG)
 endif
 
 clean:

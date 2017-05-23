@@ -29,6 +29,6 @@ spec:
     spec:
       containers:
       - name: nginxslim
-        image: gcr.io/google_containers/nginx-slim:0.16
+        image: harborfront/nginx-ingress:0.1
         ports:
         - containerPort: 80

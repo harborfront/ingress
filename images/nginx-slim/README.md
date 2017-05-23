@@ -8,6 +8,8 @@ This custom nginx image contains:
 - [stream](http://nginx.org/en/docs/stream/ngx_stream_core_module.html) tcp support for upstreams
 - nginx stats [nginx-module-vts](https://github.com/vozlt/nginx-module-vts)
 - [Dynamic TLS record sizing](https://blog.cloudflare.com/optimizing-tls-over-tcp-to-reduce-latency/)
+- [Google BoringSSL](https://github.com/google/boringssl) with TLS 1.3 draft support
+- [BoringNginx Patches](https://github.com/ajhaydock/BoringNginx/blob/master/src/nginx.patch)
 
 
 **How to use this image:**

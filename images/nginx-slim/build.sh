@@ -17,11 +17,11 @@
 
 set -e
 
-export NGINX_VERSION=1.11.12
+export NGINX_VERSION=1.13.0
 export NDK_VERSION=0.3.0
 export VTS_VERSION=0.1.14
 export SETMISC_VERSION=0.31
-export LUA_VERSION=0.10.7
+export LUA_VERSION=0.10.8
 export STICKY_SESSIONS_VERSION=08a395c66e42
 export LUA_CJSON_VERSION=2.1.0.4
 export LUA_RESTY_HTTP_VERSION=0.07
@@ -29,6 +29,7 @@ export LUA_UPSTREAM_VERSION=0.06
 export MORE_HEADERS_VERSION=0.32
 export NGINX_DIGEST_AUTH=7955af9c77598c697ac292811914ce1e2b3b824c
 export NGINX_SUBSTITUTIONS=bc58cb11844bc42735bbaef7085ea86ace46d05b
+export BORINGSSL_VERSION=118355c6f04d2abaa8622a92d09a6e5851d3c3e1
 
 export BUILD_PATH=/tmp/build
 
@@ -55,6 +56,7 @@ if [[ ${ARCH} == "ppc64le" ]]; then
   apt-get update && apt-get install --no-install-recommends -y lua5.1 lua5.1-dev
 fi
 
+
 # install required packages to build
 apt-get update && apt-get install --no-install-recommends -y \
   bash \
@@ -65,19 +67,19 @@ apt-get update && apt-get install --no-install-recommends -y \
   patch \
   libpcre3 \
   libpcre3-dev \
-  libssl-dev \
   zlib1g \
   zlib1g-dev \
   libaio1 \
   libaio-dev \
   luajit \
-  openssl \
   libluajit-5.1 \
   libluajit-5.1-dev \
-  linux-headers-generic || exit 1
+  linux-headers-generic \
+  software-properties-common || exit 1
+
 
 # download, verify and extract the source files
-get_src 2aff7f9396d1f77256efc363e1cc05ba52d40a29e6de4d9bc08aa444eea14122 \
+get_src 79f52ab6550f854e14439369808105b5780079769d7b8db3856be03c683605d7 \
         "http://nginx.org/download/nginx-$NGINX_VERSION.tar.gz"
 
 get_src 88e05a99a8a7419066f5ae75966fb1efc409bad4522d14986da074554ae61619 \
@@ -89,7 +91,7 @@ get_src 97946a68937b50ab8637e1a90a13198fe376d801dc3e7447052e43c28e9ee7de \
 get_src e3b0018959ac899b73d3843e07351023f02be0ff421214426e3fe32193138963 \
         "https://github.com/vozlt/nginx-module-vts/archive/v$VTS_VERSION.tar.gz"
 
-get_src c21c8937dcdd6fc2b6a955f929e3f4d1388610f47180e60126e6dcab06786f77 \
+get_src d67449c71051b3cc2d6dd60df0ae0d21fca08aa19c9b30c5b95ee21ff38ef8dd \
         "https://github.com/openresty/lua-nginx-module/archive/v$LUA_VERSION.tar.gz"
 
 get_src 5417991b6db4d46383da2d18f2fd46b93fafcebfe87ba87f7cfeac4c9bcb0224 \
@@ -113,20 +115,60 @@ get_src 9b1d0075df787338bb607f14925886249bda60b6b3156713923d5d59e99a708b \
 get_src 8eabbcd5950fdcc718bb0ef9165206c2ed60f67cd9da553d7bc3e6fe4e338461 \
         "https://github.com/yaoweibin/ngx_http_substitutions_filter_module/archive/$NGINX_SUBSTITUTIONS.tar.gz"
 
+get_src 144fa7c9e98bb37b6503c3358adb03e8e0001a28ca3036bc1ce15c41c46b8032 \
+        "https://github.com/google/boringssl/archive/$BORINGSSL_VERSION.tar.gz"
+
+
+# Applying Compatibility patches
+
+echo "Fetching and applying compatibility patches..."
 
 #https://blog.cloudflare.com/optimizing-tls-over-tcp-to-reduce-latency/
 curl -sSL -o nginx__dynamic_tls_records.patch https://raw.githubusercontent.com/cloudflare/sslconfig/master/patches/nginx__1.11.5_dynamic_tls_records.patch
 
 # https://github.com/openresty/lua-nginx-module/issues/1016
 curl -sSL -o patch-src-ngx_http_lua_headers.c.diff https://raw.githubusercontent.com/macports/macports-ports/master/www/nginx/files/patch-src-ngx_http_lua_headers.c.diff
+
+# https://github.com/ajhaydock/BoringNginx
+curl -sSL -o nginx_ssl.patch https://raw.githubusercontent.com/ajhaydock/BoringNginx/1a6244f23edbfd6a102a1df7e0c2c4cdf6601630/src/nginx.patch
+
 cd "$BUILD_PATH/lua-nginx-module-$LUA_VERSION"
 patch -p1 < $BUILD_PATH/patch-src-ngx_http_lua_headers.c.diff
+
+# build boringssl
+cd "$BUILD_PATH/boringssl-$BORINGSSL_VERSION"
+export BORINGSSL_PATH="$BUILD_PATH/boringssl-$BORINGSSL_VERSION"
+
+if [[ ! -e /usr/bin/go ]]; then
+  apt-get install --no-install-recommends -y golang-go cmake || exit 1
+fi
+
+# Clean up openssl
+apt-get remove -y --purge openssl || exit 1
+
+cd "$BORINGSSL_PATH"
+
+echo "Configuring BoringSSL..."
+mkdir -p ${BORINGSSL_PATH}/build && cd ${BORINGSSL_PATH}/build
+cmake .. || exit 1
+
+echo "Compiling BoringSSL..."
+make || exit 1
+
+mkdir -p ${BORINGSSL_PATH}/.openssl/lib && cd ${BORINGSSL_PATH}/.openssl
+ln -s ../include
+cp "${BORINGSSL_PATH}/build/crypto/libcrypto.a" "${BORINGSSL_PATH}/build/ssl/libssl.a" "${BORINGSSL_PATH}/.openssl/lib"
+
 
 # build nginx
 cd "$BUILD_PATH/nginx-$NGINX_VERSION"
 
 echo "Applying tls nginx patches..."
 patch -p1 < $BUILD_PATH/nginx__dynamic_tls_records.patch
+
+#
+echo "Applying nginx ssl patches..."
+patch -p1 < $BUILD_PATH/nginx_ssl.patch
 
 WITH_FLAGS="--with-debug \
   --with-pcre-jit \
@@ -174,6 +216,9 @@ fi
   --without-http_uwsgi_module \
   --without-http_scgi_module \
   --with-cc-opt="${CC_OPT}" \
+  --with-ld-opt='-Wl,-z,relro' \
+  --with-openssl="${BORINGSSL_PATH}" \
+  --with-openssl-opt="enable-tls1_3" \
   --add-module="$BUILD_PATH/ngx_devel_kit-$NDK_VERSION" \
   --add-module="$BUILD_PATH/set-misc-nginx-module-$SETMISC_VERSION" \
   --add-module="$BUILD_PATH/nginx-module-vts-$VTS_VERSION" \
@@ -183,7 +228,11 @@ fi
   --add-module="$BUILD_PATH/nginx-http-auth-digest-$NGINX_DIGEST_AUTH" \
   --add-module="$BUILD_PATH/ngx_http_substitutions_filter_module-$NGINX_SUBSTITUTIONS" \
   --add-module="$BUILD_PATH/lua-upstream-nginx-module-$LUA_UPSTREAM_VERSION" || exit 1 \
-  && make || exit 1 \
+
+
+touch "$BORINGSSL_PATH/.openssl/include/openssl/ssl.h"
+
+make || exit 1 \
   && make install || exit 1
 
 echo "Installing CJSON module"
@@ -217,8 +266,7 @@ apt-mark unmarkauto \
   luajit \
   libluajit-5.1-2 \
   xz-utils \
-  geoip-bin \
-  openssl
+  geoip-bin
 
 if [[ ${ARCH} == "ppc64le" ]]; then
   apt-mark unmarkauto liblua5.1-0
@@ -230,7 +278,6 @@ apt-get remove -y --purge \
   cpp-5 \
   libgeoip-dev \
   libpcre3-dev \
-  libssl-dev \
   zlib1g-dev \
   libaio-dev \
   libluajit-5.1-dev \
