@@ -143,9 +143,6 @@ if [[ ! -e /usr/bin/go ]]; then
   apt-get install --no-install-recommends -y golang-go cmake || exit 1
 fi
 
-# Clean up openssl
-apt-get remove -y --purge openssl || exit 1
-
 cd "$BORINGSSL_PATH"
 
 echo "Configuring BoringSSL..."
