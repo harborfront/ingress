@@ -1,36 +1,64 @@
+dist: trusty
 sudo: required
-
 services:
-  - docker
-
+- docker
 language: go
-
 notifications:
-  email: true
-
+  email:
+    on_failure: always
+    on_success: never
 go:
-  - 1.8.1
-
-go_import_path: k8s.io/ingress
-
+- 1.9.3
+go_import_path: k8s.io/ingress-nginx
 env:
   global:
-    # to add additional secure variables:
-    # docker run --rm caktux/travis-cli encrypt key=value -r kubernetes/ingress
-    - RELEASE="ci-${TRAVIS_BUILD_ID}"
-
-install:
-  - go get github.com/golang/lint/golint
-  - go get github.com/mattn/goveralls
-  - go get github.com/modocache/gover
-  - if ! go get github.com/golang/tools/cmd/cover; then go get golang.org/x/tools/cmd/cover; fi
-
-before_script:
-  - export PATH=$PATH:$PWD/hack/e2e-internal/
-
-script:
-  - docker login -e="$DOCKER_EMAIL" -u="$DOCKER_USERNAME" -p="$DOCKER_PASSWORD"
-  - make -C images/nginx-slim all
-  - make fmt lint vet
-  - make docker-push
-  #- make test-e2e
+  - CHANGE_MINIKUBE_NONE_USER=true
+  - KUBERNETES_VERSION=v1.9.0
+  - DOCKER=docker
+  - TRAVIS_TIMEOUT=240
+  - secure: FIVqAPXae9xFJ8Qpb4ajRva9ir7yy/CRZ0JvOkOBp3DwSE96u7B3bITgQThv86xjDpj2mCQhcM1BbV39kjA82krB1/v9FgTRSpi6zXiGi++GDAHrEkfJzSOVRJCSzxhqD0tX4aWu4sc2yZAc1QcZ8wFfEFUE8Oy70+nelVKTcGh0uj98yyzUe7JvzaPgI28VzQjPETaF5tKF5JH4TP6dU3c4QY9A1L0u5sfhP+sbqRoQUiwOr9TzVvnsuUdcY+0dj/QsMd5TzNXPbmkfoIOXGN11wAwTin5DsrhIsEel1k9/qsL1PONnCIYMXMGHCcV/izp7QlukqwNEq3nAeKwwsWKJcXbcyXWDoPfip3qZDrTh/Jd0zKvZsQxPFdA9cfB8aBR3DMLoLNFc3X4d3XCEA1WlcdgXYLlOX886JIAYhfTpa+ZY5ywX2wyIvFvT89KdBgmu9uvxw6AJw0ogQW719OBVcGdhhSMoDrMDz0E6ynJlUAckU9pnGDC1lW/MfMOg5q/fGMKIhdZw3yTEL0So2RRM4BeINufCmw7LR+P5MyU5gHXXAmmiY7AdK7fJdxCUdWYl4xgLPEWPNUMUygeZP1ImozBzihFpNuc15x8KTGdzpgKrI+83OgQDhWqO8zJEYZ5fr5NKjqfaVoP1qweUIIUXqurldCayQCJuNxeqAnE=
+  - secure: El1xx4O7kxF8RnUqFxxg4q3MpOmJgEkgmr5CfBV8jMBh9yhYn+Y4MMaqcllYawSqQt+KQDSN6d7r0kXk8BO1mQsmtu3lM7CL0I/oKCilKtm8wmfwLmbpR5juxm8hRZjovS7xEHsfD58+8gpuu3LiKvTOVtTEYvcPIWyB8BTxwelXDKi56CP0koEFtkS76kUfc0Q0aM/NbRH+Ft0DUikR1WSBGLGkQd04eSJ9/huof2zpZWZboTvR/xyvjdxh3DfIxioLdB5q3SR12I7/vQim6QGTOe/evE16LFLibzH69NqlUtLaYlBRGLXl8KqG/q1v6cSoh6UOnqHeByI3xAS0+S2g5DXWNU8CLvt2Y4r9+7+tE9vJ4WmtD0Yg/H7pNe8LN5JGlXGqZRwEbELrYcKZEg3kLX07QIfTOLcUU1cO4dY4vIQ8GUFRixcd0y7mmTMOOhCuSDMUmG6o89lsUpIW2UH3HhEkrWkdUH7Evcs0mZUWlS3/JZTCjWVhdFVXVkiMYbwhz/rGpriO44xytJXwlZ07iQJGa5ljeyE9ylPqHiccNxIIw0zTP8t5daaxDa4VLDv0W7OgspTonbo3Sf1UZfF3zp1JvrfZCGiknURfekVGWGy4DtZEkEXS2+FfhktqPwsPqlW9dPbFOa+8H3/uZnltYm7Bx/0CrIIBPhe+BFM=
+  - secure: ThYPjoQGziuCztJmPxvV7ghwD2ZErXAbBjyvR47bKLLTUtZ6gZ3XrkVW5AlGdnWHBz+2d1juYV4N9drRxukru15WMmsg2Ofu7LpQzhMA7I1xg6UyLjKGbQTeZxe8OkpNr+h1nAIcfBvtEqNuEc8N5+L2JrM0v1YFEGGm824fdru70rCBDrMvvBQpuNW6XzizaI3OFilx597VLp34M+ZhiUc2W5HmxfitRKCkcIBW4b+X9fbuSQXVvYAcOo9HpLS3cl8yeKUlULKiGs3eoL86CIdaYDfqJ1HMlT7Hw9Ws7dqFKUozvp0kZcXJEreBceeq5iwkR7EanJ6duFaYnrLLdKdSo012kYJ5jnVemy/e1qfemicvC20HSNYiGi+0YKH250eW1BjWwhOiMeGuxYsQOwjvhyVfCa9XyNqhkzRPBiOq/uesTyEKRV65u+RTnwsbXCFnuziCEQEz9talX96bmQWTAphM8WU8OTq9OmDvD1o5W4HYeHiNp1ZeOiHv9lRXURZiJYWGJrZUAcmprEOtqWd49NPiwpVzRpDmbXsfDUZRmnWDv6TcSzihmgE0sIv2Z5t71uBY769pNHF3N6mrUJXAxE64rXYDwpqGJCZ+CD8Ke17Sr6nL6MFyiTEXsC++bCjDa6+lSI+/D2W/l9/AW1NdyxP8UVdbYDJOKcFJMz0=
+jobs:
+  include:
+  - stage: Static Check
+    script:
+    - go get github.com/golang/lint/golint
+    - make verify-all
+  - stage: Coverage
+    before_script:
+    - test/e2e/up.sh
+    script:
+    - go get github.com/mattn/goveralls
+    - go get github.com/modocache/gover
+    - if ! go get github.com/golang/tools/cmd/cover; then go get golang.org/x/tools/cmd/cover;fi
+    - if ! go get github.com/jteeuwen/go-bindata/...; then github.com/jteeuwen/go-bindata/...;fi
+    - make cover
+  - stage: e2e
+    before_script:
+    - if ! go get github.com/jteeuwen/go-bindata/...; then github.com/jteeuwen/go-bindata/...;fi
+    - make e2e-image
+    - test/e2e/up.sh
+    - test/e2e/wait-for-nginx.sh
+    script:
+    - make e2e-test
+  - stage: publish amd64
+    if: type = api AND branch = master AND repo = harborfront/kubernetes-ingresss
+    script:
+    - travis_wait ${TRAVIS_TIMEOUT} .travis/publish.sh amd64
+  - stage: publish arm
+    if: type = api AND branch = master AND repo = harborfront/kubernetes-ingresss
+    script:
+    - travis_wait ${TRAVIS_TIMEOUT} .travis/publish.sh arm
+  - stage: publish arm64
+    if: type = api AND branch = master AND repo = harborfront/kubernetes-ingresss
+    script:
+    - travis_wait ${TRAVIS_TIMEOUT} .travis/publish.sh arm64
+  - stage: publish ppc64le
+    if: type = api AND branch = master AND repo = harborfront/kubernetes-ingresss
+    script:
+    - travis_wait ${TRAVIS_TIMEOUT} .travis/publish.sh ppc64le
+  - stage: publish s390x
+    if: type = api AND branch = master AND repo = harborfront/kubernetes-ingresss
+    script:
+    - travis_wait ${TRAVIS_TIMEOUT} .travis/publish.sh s390x
