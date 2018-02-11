@@ -29,5 +29,5 @@ RUN mkdir -p /var/log/nginx \
 COPY . /
 
 ENTRYPOINT ["/usr/bin/dumb-init"]
-`
+
 CMD ["/nginx-ingress-controller"]
